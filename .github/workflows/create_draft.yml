@@ -1,0 +1,35 @@
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+jobs:
+  create_draft:
+    name: create draft
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: compile
+        uses: arduino/compile-sketches@v1.1.2
+        with:
+          fqbn: rp2040:rp2040:rpipico
+          platforms: |
+            - name: rp2040:rp2040
+              source-url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+          sketch-paths: .
+          cli-compile-flags: |
+            - --export-binaries
+
+      - name: list files
+        run: tree
+
+      - name: create draft release
+        run: gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --draft
+
+      - name: upload
+        run: gh release upload ${{ github.ref_name }} build/*/*.ino.uf2
